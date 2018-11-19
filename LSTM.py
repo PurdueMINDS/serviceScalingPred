@@ -12,6 +12,8 @@ import random
 import copy
 from collections import OrderedDict
 
+CUDA = True
+
 class MyLSTM(nn.Module):
     def __init__(self, lstmHiddenSize, layerSizes, numLayers, win, optim = 'SGD', lr = 0.01, gradientClip = 10.0, gradientClipType = 'inf'):
         super(MyLSTM, self).__init__()
@@ -146,8 +148,13 @@ def batchfiy(train_X, train_Y):
         else:
             if len(bX) == 0:
                 continue 
-            bX = Variable(torch.FloatTensor(bX))
-            bY = Variable(torch.FloatTensor(bY))
+            
+            if CUDA:
+                bX = Variable(torch.FloatTensor(bX)).cuda()
+                bY = Variable(torch.FloatTensor(bY)).cuda()
+            else:
+                bX = Variable(torch.FloatTensor(bX))
+                bY = Variable(torch.FloatTensor(bY))
             batches_X.append(bX)
             batches_Y.append(bY)
             bX = []
@@ -243,6 +250,7 @@ def main():
     trainQuota = 0.95
     validQuota = 0.05
     
+    
     data_X, data_Y = getTrainingData(dir, summaryFile, minDropRate=1, maxDropRate=1e100)
     
     #shuffle data
@@ -265,6 +273,8 @@ def main():
     test_Y = data_Y[trainLen+validLen:]
     
     mynet = MyLSTM(lstmHiddenSize = 50, layerSizes = [25,10], numLayers = 1, win = 1, optim = 'Adam', lr = 0.01, gradientClip = 50.0, gradientClipType = 2)
+    if CUDA:
+        mynet = mynet.cuda()
     
     train(mynet, train_X, train_Y,
           valid_X, valid_Y, 
